@@ -46,7 +46,16 @@ func registerHandler(c *gin.Context) {
 	}
 	newUser.ID = uuid.New().String()
 	models.DB.Create(&newUser)
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "user": newUser.ID, "username": newUser.Username})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": newUser.Username,
+		"exp":      time.Now().Add(time.Hour * 1).Unix(),
+	})
+	tokenString, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "user": newUser.ID, "username": newUser.Username})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "user": newUser.ID, "username": newUser.Username, "token": tokenString})
 }
 
 func SetupUserRouter(r *gin.Engine) {
